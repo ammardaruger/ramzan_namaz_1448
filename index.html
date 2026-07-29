@@ -195,24 +195,20 @@
       <div class="confirm-text" id="confirmText"></div>
       <div style="display:flex; gap:8px;">
         <button class="action" id="clearSelectionBtn">Change selection</button>
-        <button class="action primary" id="confirmBtn">Confirm reservation</button>
+        <button class="action primary" id="confirmBtn">Confirm selection</button>
       </div>
     </div>
   </div>
 
   <div class="panel">
-    <h2>Your reservation</h2>
+    <h2>Your selection</h2>
     <div class="mybookings" id="myBookings">
-      <div class="empty-msg">No reservation yet.</div>
+      <div class="empty-msg">No selection yet.</div>
     </div>
     <div class="footer-actions">
       <button class="action" id="refreshBtn">Refresh availability</button>
     </div>
-    <div class="disclaimer">
-      Every reservation is written directly to the Google Sheet the moment it's confirmed — that
-      Sheet is the live record, not a separate export. Once confirmed, a reservation is final and
-      cannot be released or changed from this dashboard.
-    </div>
+    
   </div>
 
 </div>
@@ -254,6 +250,12 @@
     return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
   }
   function slotKey(dateIso, option){ return dateIso + "|" + option; }
+
+  function hijriLabel(dateIso){
+    var dObj = new Date(dateIso + "T00:00:00");
+    var dayNum = Math.round((dObj - RAMZAN_START) / 86400000) + 1;
+    return dayNum + " Ramzan 1448H";
+  }
 
   function showToast(msg, kind){
     var t = document.getElementById("toast");
@@ -406,7 +408,7 @@
   function renderSlots(){
     var d = dates[state.selectedDateIdx];
     var iso = isoDate(d);
-    selDateLabel.textContent = "Ramzan " + (state.selectedDateIdx+1) + " — " + DOW[d.getDay()] + ", " + d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear();
+    selDateLabel.textContent = hijriLabel(iso) + " — " + DOW[d.getDay()];
 
     var confirmedKey = myConfirmedEntry();
 
@@ -422,7 +424,7 @@
       var cls = "slot";
       var metaText = "Available";
       if(isTaken){ cls += " taken"; metaText = "Reserved"; }
-      else if(isMine){ cls += " mine"; metaText = "Confirmed — your reservation"; }
+      else if(isMine){ cls += " mine"; metaText = "Confirmed — your selection"; }
       else if(isPending){ cls += " selected"; metaText = "Selected — not yet confirmed"; }
 
       div.className = cls;
@@ -445,7 +447,7 @@
     // already confirmed for this ITS — locked, no changes possible from here
     if(confirmedKey){
       var cp = confirmedKey.split("|");
-      showToast("Your reservation is already confirmed (" + cp[0] + " — " + cp[1] + ") and can't be changed here.", "err");
+      showToast("Your selection is already confirmed (" + hijriLabel(cp[0]) + " — " + cp[1] + ") and can't be changed here.", "err");
       return;
     }
 
@@ -478,8 +480,7 @@
       confirmBar.style.display = "none";
       return;
     }
-    var idx = dates.findIndex(function(d){ return isoDate(d) === state.pendingSelection.dateIso; });
-    confirmText.textContent = "Selected: Ramzan " + (idx+1) + " — " + state.pendingSelection.option + ". This is not saved yet.";
+    confirmText.textContent = "Selected: " + hijriLabel(state.pendingSelection.dateIso) + " — " + state.pendingSelection.option + ". This is not saved yet.";
     confirmBar.style.display = "flex";
   }
 
@@ -497,17 +498,16 @@
 
     if(result.ok){
       state.pendingSelection = null;
-      var idx = dates.findIndex(function(d){ return isoDate(d) === sel.dateIso; });
-      showToast("Confirmed " + sel.option + " for Ramzan " + (idx+1) + ". This is final.", "ok");
+      showToast("Confirmed " + sel.option + " for " + hijriLabel(sel.dateIso));
     } else if(result.reason === "limit"){
       state.pendingSelection = null;
-      showToast("You already hold a confirmed slot (" + result.existingDate + " — " + result.existingOption + ").", "err");
+      showToast("You already hold a confirmed slot (" + hijriLabel(result.existingDate) + " — " + result.existingOption + ").", "err");
     } else if(result.reason === "taken"){
       state.pendingSelection = null;
       showToast("Someone else just reserved that slot first. Please choose another.", "err");
       await loadAllSlots();
     } else {
-      showToast("Couldn't confirm your reservation — please try again.", "err");
+      showToast("Couldn't confirm your selection — please try again.", "err");
       await loadAllSlots();
     }
     renderAll();
@@ -519,7 +519,7 @@
   function renderMyBookings(){
     myBookingsEl.innerHTML = "";
     if(!state.its){
-      myBookingsEl.innerHTML = '<div class="empty-msg">Enter your ITS number to view your reservation.</div>';
+      myBookingsEl.innerHTML = '<div class="empty-msg">Enter your ITS number to view your selection.</div>';
       return;
     }
     var confirmedKey = myConfirmedEntry();
@@ -528,7 +528,7 @@
       var parts = confirmedKey.split("|");
       var row = document.createElement("div");
       row.className = "mb-row";
-      row.innerHTML = '<span class="lbl">' + parts[0] + ' &middot; ' + parts[1] + '</span><span class="locked-note">Confirmed &middot; final</span>';
+      row.innerHTML = '<span class="lbl">' + hijriLabel(parts[0]) + ' &middot; ' + parts[1] + '</span><span class="locked-note">Confirmed &middot; final</span>';
       myBookingsEl.appendChild(row);
       return;
     }
@@ -536,12 +536,12 @@
     if(state.pendingSelection){
       var row2 = document.createElement("div");
       row2.className = "mb-row";
-      row2.innerHTML = '<span class="lbl">' + state.pendingSelection.dateIso + ' &middot; ' + state.pendingSelection.option + '</span><span class="locked-note" style="color:var(--gold-deep);">Not yet confirmed</span>';
+      row2.innerHTML = '<span class="lbl">' + hijriLabel(state.pendingSelection.dateIso) + ' &middot; ' + state.pendingSelection.option + '</span><span class="locked-note" style="color:var(--gold-deep);">Not yet confirmed</span>';
       myBookingsEl.appendChild(row2);
       return;
     }
 
-    myBookingsEl.innerHTML = '<div class="empty-msg">No reservation yet.</div>';
+    myBookingsEl.innerHTML = '<div class="empty-msg">No selection yet.</div>';
   }
 
   // ---------- refresh ----------
