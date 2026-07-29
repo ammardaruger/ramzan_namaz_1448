@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ramzan 1448 Azan & Takbira</title>
+<title>Ramazan 1448 Azan & Takbira</title>
 <style>
   :root{
     --ink:#1c2b24;
@@ -161,8 +161,8 @@
 
   <header>
     <div class="crescent">&#9789;</div>
-    <h1>Ramzan 1448 Azan & Takbira</h1>
-    <div class="sub">Slot booking &middot; 1st Ramzan 1448H corresponds to Saturday, 6 February 2027</div>
+    <h1>Ramazan 1448 Azan & Takbira Khidmat</h1>
+    <div class="sub">Slot booking &middot; 1st Ramazan 1448H corresponds to Saturday, 6 February 2027</div>
     <div class="sub" style="margin-top:4px;">Each ITS number may hold one slot for the entire month.</div>
   </header>
 
@@ -181,7 +181,7 @@
   </div>
 
   <div class="panel">
-    <h2>Select a date &middot; Ramzan 1448H</h2>
+    <h2>Select a date &middot; Ramazan 1448H</h2>
     <div class="date-scroll" id="dateScroll"></div>
   </div>
 
@@ -222,7 +222,7 @@
   var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwPbTyRzD8MGpwLP7sn6gPdO9QovFSQrkm0dKKGyL_AGbmWowM1PyAbUITrm25alPf3A/exec";
   // ================================
 
-  var RAMZAN_START = new Date(2027, 1, 6); // 6 Feb 2027
+  var RAMAZAN_START = new Date(2027, 1, 6); // 6 Feb 2027
   var TOTAL_DAYS = 30;
   var OPTIONS = ["Fajr Azan","Fajr Takbira","Maghrib Azan","Maghrib Takbira","Isha Takbira"];
   var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -234,7 +234,7 @@
 
   var dates = [];
   for(var i=0;i<TOTAL_DAYS;i++){
-    var d = new Date(RAMZAN_START.getTime());
+    var d = new Date(RAMAZAN_START.getTime());
     d.setDate(d.getDate()+i);
     dates.push(d);
   }
@@ -253,8 +253,8 @@
 
   function hijriLabel(dateIso){
     var dObj = new Date(dateIso + "T00:00:00");
-    var dayNum = Math.round((dObj - RAMZAN_START) / 86400000) + 1;
-    return dayNum + " Ramzan 1448H";
+    var dayNum = Math.round((dObj - RAMAZAN_START) / 86400000) + 1;
+    return dayNum + " Ramazan 1448H";
   }
 
   function showToast(msg, kind){
@@ -379,7 +379,7 @@
       var chip = document.createElement("div");
       chip.className = "date-chip" + (idx === state.selectedDateIdx ? " active" : "") + (avail === 0 ? " full" : "");
       chip.innerHTML =
-        '<div class="rday">Ramzan</div>' +
+        '<div class="rday">Ramazan</div>' +
         '<div class="dnum">' + (idx+1) + '</div>' +
         '<div class="dow">' + DOW[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '</div>' +
         '<div class="avail">' + (avail === 0 ? 'Full' : avail + ' open') + '</div>';
