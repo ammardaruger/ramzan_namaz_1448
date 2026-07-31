@@ -30,7 +30,7 @@
 const SHEET_NAME = "Bookings";
 const RAMZAN_START = new Date(2027, 1, 6); // 6 Feb 2027
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const HEADERS = ["Date", "Option", "ITS Number", "Reserved At", "Ramzan Day", "Weekday"];
+const HEADERS = ["Date", "Option", "ITS Number", "Email", "Reserved At", "Ramzan Day", "Weekday"];
 
 function getSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -66,7 +66,8 @@ function readAllRows_() {
       date: formatDateStr_(row[0]),
       option: row[1],
       its: String(row[2]),
-      reservedAt: row[3] instanceof Date ? row[3].toISOString() : String(row[3])
+      email: String(row[3]),
+      reservedAt: row[4] instanceof Date ? row[4].toISOString() : String(row[4])
     });
   });
   return out;
@@ -98,7 +99,7 @@ function doPost(e) {
     const action = body.action;
 
     if (action === "claim") {
-      return jsonOut_(claim_(body.date, body.option, body.its));
+      return jsonOut_(claim_(body.date, body.option, body.its, body.email));
     } else if (action === "release") {
       return jsonOut_(release_(body.date, body.option, body.its));
     } else if (action === "list") {
@@ -112,9 +113,13 @@ function doPost(e) {
   }
 }
 
-function claim_(dateIso, option, its) {
+function claim_(dateIso, option, its, email) {
   if (!/^\d{8}$/.test(String(its))) {
     return { ok: false, reason: "error", detail: "ITS number must be exactly 8 digits." };
+  }
+  const emailStr = String(email || "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+    return { ok: false, reason: "error", detail: "A valid email address is required." };
   }
   const rows = readAllRows_();
 
@@ -135,7 +140,7 @@ function claim_(dateIso, option, its) {
   const dow = DOW[dObj.getDay()];
   const now = new Date();
 
-  sheet.appendRow([dateIso, option, String(its), now.toISOString(), dayNum, dow]);
+  sheet.appendRow([dateIso, option, String(its), emailStr, now.toISOString(), dayNum, dow]);
   return { ok: true, bookings: readAllRows_() };
 }
 
