@@ -70,6 +70,14 @@
   input#itsInput:focus{border-color:var(--gold);}
   input#itsInput.valid{border-color:var(--mine);}
   input#itsInput.invalid{border-color:var(--danger);}
+  input#emailInput{
+    flex:1;min-width:220px;font-size:15px;letter-spacing:0.2px;
+    padding:11px 14px;border:1.5px solid var(--line);border-radius:8px;
+    outline:none;background:#fffefb;color:var(--ink);font-family:inherit;
+  }
+  input#emailInput:focus{border-color:var(--gold);}
+  input#emailInput.valid{border-color:var(--mine);}
+  input#emailInput.invalid{border-color:var(--danger);}
   .its-status{font-size:12.5px;margin-top:8px;min-height:16px;}
   .its-status.ok{color:var(--mine);}
   .its-status.err{color:var(--danger);}
@@ -176,8 +184,10 @@
     <h2>Your ITS number</h2>
     <div class="its-row">
       <input id="itsInput" type="text" inputmode="numeric" maxlength="8" placeholder="Enter your 8-digit ITS number">
+      <input id="emailInput" type="email" placeholder="Enter your email address">
     </div>
     <div class="its-status muted" id="itsStatus">Enter your ITS number to see and reserve available slots.</div>
+    <div class="its-status muted" id="emailStatus">Email is required to confirm a slot.</div>
   </div>
 
   <div class="panel">
@@ -241,6 +251,7 @@
 
   var state = {
     its: null,
+    email: null,
     selectedDateIdx: 0,
     slots: {}, // key -> {its, ts}  (confirmed, saved to the Sheet)
     pendingSelection: null // {dateIso, option} — staged locally, not yet confirmed
@@ -309,9 +320,9 @@
     return await res.json();
   }
 
-  async function claimSlot(dateIso, option, its){
+  async function claimSlot(dateIso, option, its, email){
     try{
-      var data = await postAction({ action:"claim", date:dateIso, option:option, its:its });
+      var data = await postAction({ action:"claim", date:dateIso, option:option, its:its, email:email });
       if(data.ok){
         state.slots = bookingsToSlotsMap(data.bookings);
         return { ok:true };
@@ -358,6 +369,28 @@
       itsStatus.className = "its-status " + (v.length ? "err" : "muted");
       renderAll();
     }
+  });
+
+  // ---------- email input ----------
+  var emailInput = document.getElementById("emailInput");
+  var emailStatus = document.getElementById("emailStatus");
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  emailInput.addEventListener("input", function(){
+    var v = emailInput.value.trim();
+    state.pendingSelection = null;
+    if(EMAIL_RE.test(v)){
+      emailInput.className = "valid";
+      state.email = v;
+      emailStatus.textContent = "Email looks good.";
+      emailStatus.className = "its-status ok";
+    } else {
+      emailInput.className = v.length ? "invalid" : "";
+      state.email = null;
+      emailStatus.textContent = v.length ? "Enter a valid email address." : "Email is required to confirm a slot.";
+      emailStatus.className = "its-status " + (v.length ? "err" : "muted");
+    }
+    renderAll();
   });
 
   // ---------- date strip ----------
@@ -443,6 +476,10 @@
       showToast("Enter your 8-digit ITS number first.", "err");
       return;
     }
+    if(!state.email){
+      showToast("Enter a valid email address first.", "err");
+      return;
+    }
 
     // already confirmed for this ITS — locked, no changes possible from here
     if(confirmedKey){
@@ -480,7 +517,15 @@
       confirmBar.style.display = "none";
       return;
     }
-    confirmText.textContent = "Selected: " + hijriLabel(state.pendingSelection.dateIso) + " — " + state.pendingSelection.option + ". This is not saved yet.";
+    var baseText = "Selected: " + hijriLabel(state.pendingSelection.dateIso) + " — " + state.pendingSelection.option + ". This is not saved yet.";
+    var confirmBtnEl = document.getElementById("confirmBtn");
+    if(!state.email){
+      confirmText.textContent = baseText + " Enter your email above to confirm.";
+      confirmBtnEl.disabled = true;
+    } else {
+      confirmText.textContent = baseText;
+      confirmBtnEl.disabled = false;
+    }
     confirmBar.style.display = "flex";
   }
 
@@ -491,9 +536,13 @@
 
   document.getElementById("confirmBtn").addEventListener("click", async function(){
     if(!state.pendingSelection || !state.its) return;
+    if(!state.email){
+      showToast("Enter a valid email address before confirming.", "err");
+      return;
+    }
     var sel = state.pendingSelection;
     slotLoading.style.display = "inline";
-    var result = await claimSlot(sel.dateIso, sel.option, state.its);
+    var result = await claimSlot(sel.dateIso, sel.option, state.its, state.email);
     slotLoading.style.display = "none";
 
     if(result.ok){
